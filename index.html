@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>中国語単語帳 音声プレイヤー（中国語＋日本語聞き流し）</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --accent: #f59e0b;
+      --pinyin-color: #0284c7;
+      --radius: 12px;
+      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 24px 16px 90px;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    /* コントロールパネル */
+    .panel {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      margin-bottom: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .panel-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      justify-content: space-between;
+    }
+
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    button {
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      transition: all 0.15s ease;
+    }
+
+    button:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+    }
+
+    button.btn-primary {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    button.btn-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    .control-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    select, input[type="range"] {
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #fff;
+      font-size: 0.85rem;
+      color: var(--text);
+      outline: none;
+    }
+
+    select:focus {
+      border-color: var(--primary);
+    }
+
+    /* フィルタ＆トグル */
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+    }
+
+    .filter-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .filter-tag {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: #e2e8f0;
+      color: var(--text-muted);
+      cursor: pointer;
+      border: none;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .filter-tag.active {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .toggles {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .toggle-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .highlight-toggle {
+      background: #ecfdf5;
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid #a7f3d0;
+      color: #065f46;
+      font-weight: 600;
+    }
+
+    /* 単語カード一覧 */
+    .word-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .word-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      border: 2px solid var(--border);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.2s ease;
+    }
+
+    .word-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+      border-color: #cbd5e1;
+    }
+
+    /* 中国語再生中ハイライト (青) */
+    .word-card.playing-zh {
+      border-color: #2563eb !important;
+      background-color: #eff6ff !important;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.3) !important;
+      animation: pulse-zh 1.2s infinite;
+    }
+
+    /* 日本語再生中ハイライト (緑) */
+    .word-card.playing-ja {
+      border-color: #10b981 !important;
+      background-color: #f0fdf4 !important;
+      box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.3) !important;
+      animation: pulse-ja 1.2s infinite;
+    }
+
+    @keyframes pulse-zh {
+      0%, 100% { box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3); }
+      50% { box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.5); }
+    }
+
+    @keyframes pulse-ja {
+      0%, 100% { box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3); }
+      50% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.5); }
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .card-badge {
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      background: #f1f5f9;
+      color: var(--text-muted);
+      border-radius: 4px;
+      font-weight: bold;
+    }
+
+    .play-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      padding: 0;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .play-btn:hover {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .chinese {
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+      line-height: 1.35;
+    }
+
+    .pinyin {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--pinyin-color);
+      letter-spacing: 0.03em;
+      margin-bottom: 8px;
+      min-height: 1.4em;
+      transition: filter 0.2s;
+    }
+
+    .pinyin.masked, .meaning.masked {
+      filter: blur(5px);
+      user-select: none;
+    }
+
+    .meaning {
+      font-size: 0.9rem;
+      color: #334155;
+      border-top: 1px dashed var(--border);
+      padding-top: 8px;
+      transition: filter 0.2s;
+    }
+
+    .card-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .g-trans-link {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .g-trans-link:hover {
+      color: var(--primary);
+      text-decoration: underline;
+    }
+
+    /* 単語追加フォーム */
+    .import-section {
+      margin-top: 30px;
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 20px;
+      border: 1px solid var(--border);
+    }
+
+    .import-section h3 {
+      font-size: 1.1rem;
+      margin-bottom: 10px;
+    }
+
+    .import-textarea {
+      width: 100%;
+      height: 100px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-family: inherit;
+      font-size: 0.85rem;
+      margin-bottom: 10px;
+    }
+
+    /* 再生中インジケータ */
+    .status-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(8px);
+      color: #fff;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 1000;
+      box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.15);
+      font-size: 0.9rem;
+    }
+
+    .status-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .now-playing-badge {
+      background: #64748b;
+      color: #fff;
+      font-size: 0.75rem;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>🇨🇳 中国語 単語帳プレイヤー 🇯🇵</h1>
+      <p class="subtitle">中国語（ピンイン発音）のあとに日本語訳を自動読み上げ！聞き流し対応</p>
+    </header>
+
+    <!-- 操作パネル -->
+    <div class="panel">
+      <div class="panel-row">
+        <!-- 再生ボタン群 -->
+        <div class="btn-group">
+          <button id="btnPlayAll" class="btn-primary">
+            <span>▶</span> 全て連続再生
+          </button>
+          <button id="btnPause" style="display: none;">
+            <span>⏸</span> 一時停止
+          </button>
+          <button id="btnStop">
+            <span>⏹</span> 停止
+          </button>
+        </div>
+
+        <!-- 音声＆速度コントロール -->
+        <div class="btn-group">
+          <div class="control-item">
+            <label for="speedRange">速度: <span id="speedValue">1.0</span>x</label>
+            <input type="range" id="speedRange" min="0.6" max="1.4" step="0.1" value="1.0" style="width: 75px;">
+          </div>
+          <div class="control-item">
+            <label for="intervalSelect">単語間の間隔:</label>
+            <select id="intervalSelect">
+              <option value="600">0.6秒</option>
+              <option value="1200" selected>1.2秒</option>
+              <option value="2000">2.0秒</option>
+              <option value="3000">3.0秒</option>
+            </select>
+          </div>
+          <div class="control-item">
+            <label for="repeatCount">中国語リピート:</label>
+            <select id="repeatCount">
+              <option value="1">1回</option>
+              <option value="2" selected>2回</option>
+              <option value="3">3回</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 詳細設定とトグル -->
+      <div class="filter-bar">
+        <div class="filter-tags">
+          <button class="filter-tag active" data-category="all">すべて (<span id="countAll">0</span>)</button>
+          <button class="filter-tag" data-category="#78">#78 (<span id="count78">0</span>)</button>
+          <button class="filter-tag" data-category="#79">#79 (<span id="count79">0</span>)</button>
+          <button class="filter-tag" data-category="#80">#80 (<span id="count80">0</span>)</button>
+          <button class="filter-tag" data-category="#81">#81 (<span id="count81">0</span>)</button>
+        </div>
+
+        <div class="toggles">
+          <!-- 日本語読み上げトグル (デフォルトON) -->
+          <label class="toggle-label highlight-toggle">
+            <input type="checkbox" id="playJapanese" checked> 🇯🇵 日本語訳も読み上げる
+          </label>
+          <label class="toggle-label">
+            <input type="checkbox" id="maskPinyin"> ピンインを隠す
+          </label>
+          <label class="toggle-label">
+            <input type="checkbox" id="maskMeaning"> 意味を隠す
+          </label>
+        </div>
+
+        <div class="control-item">
+          <label for="voiceSelect">中国語音声:</label>
+          <select id="voiceSelect" style="max-width: 150px;">
+            <option value="">標準 (普通話)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- 単語カード一覧 -->
+    <div id="wordGrid" class="word-grid"></div>
+
+    <!-- 単語追加・インポート -->
+    <div class="import-section">
+      <h3>➕ 新しい単語を追加・一括登録</h3>
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">
+        書式例: <code>中国語 ピンイン 日本語訳 タグ</code>（タブ区切りやコロン区切りでも自動解析します）
+      </p>
+      <textarea id="importInput" class="import-textarea" placeholder="你好 nǐhǎo こんにちは #82&#10;谢谢 xièxie ありがとう #82"></textarea>
+      <div style="display: flex; gap: 8px; justify-content: flex-end;">
+        <button id="btnResetData" style="color: #ef4444;">初期データに戻す</button>
+        <button id="btnImport" class="btn-primary">追加する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 下部固定ステータスバー -->
+  <div class="status-bar" id="statusBar">
+    <div class="status-info">
+      <span class="now-playing-badge" id="statusBadge">待機中</span>
+      <span id="statusText">カードをクリックするか、「全て連続再生」を押してください</span>
+    </div>
+    <div style="font-size: 0.8rem; color: #94a3b8;">
+      🇨🇳 zh-CN ➔ 🇯🇵 ja-JP
+    </div>
+  </div>
+
+  <script>
+    // 初期単語データ (#78, #79, #80, #81)
+    const defaultWords = [
+      // #78
+      { id: 1, hanzi: "布袋戏", pinyin: "bùdàixì", meaning: "ポテヒ（布袋劇）", category: "#78" },
+      { id: 2, hanzi: "木偶剧", pinyin: "mù'ǒujù", meaning: "人形劇", category: "#78" },
+      { id: 3, hanzi: "圣石传说", pinyin: "shèngshí chuánshuō", meaning: "聖石伝説", category: "#78" },
+      { id: 4, hanzi: "东离剑游纪", pinyin: "dōnglí jiànyóujì", meaning: "Thunderbolt Fantasy 東離劍遊紀", category: "#78" },
+      { id: 5, hanzi: "文戏", pinyin: "wénxì", meaning: "文劇（会話や演技中心の場面）", category: "#78" },
+      { id: 6, hanzi: "武戏", pinyin: "wǔxì", meaning: "武劇（立ち回りやアクション場面）", category: "#78" },
+      { id: 7, hanzi: "玄幻武侠木偶剧", pinyin: "xuánhuàn wǔxiá mù'ǒujù", meaning: "武侠ファンタジー人形劇", category: "#78" },
+      { id: 8, hanzi: "亦宛然掌中剧团", pinyin: "yìwǎnrán zhǎngzhōng jùtuán", meaning: "亦宛然掌中劇団", category: "#78" },
+
+      // #79
+      { id: 9, hanzi: "政权更替", pinyin: "zhèngquán gēngtì", meaning: "政権交代", category: "#79" },
+      { id: 10, hanzi: "钓鱼岛", pinyin: "diàoyúdǎo", meaning: "釣魚島（尖閣諸島）", category: "#79" },
+      { id: 11, hanzi: "尖阁国有化", pinyin: "jiāngé guóyǒuhuà", meaning: "尖閣国有化", category: "#79" },
+      { id: 12, hanzi: "上海世博会", pinyin: "shànghǎi shìbóhuì", meaning: "上海万博", category: "#79" },
+      { id: 13, hanzi: "九一八事变", pinyin: "jiǔyībā shìbiàn", meaning: "満州事変", category: "#79" },
+      { id: 14, hanzi: "玻璃器皿", pinyin: "bōli qìmǐn", meaning: "ガラス器／ガラス細工", category: "#79" },
+      { id: 15, hanzi: "中日联合声明", pinyin: "zhōngrì liánhé shēngmíng", meaning: "日中共同声明", category: "#79" },
+      { id: 16, hanzi: "睦邻友好关系", pinyin: "mùlín yǒuhǎo guānxì", meaning: "善隣友好関係", category: "#79" },
+
+      // #80
+      { id: 17, hanzi: "中国戏曲学院", pinyin: "zhōngguó xìqǔ xuéyuàn", meaning: "中国戯曲学院", category: "#80" },
+      { id: 18, hanzi: "中国国家京剧院", pinyin: "zhōngguó guójiā jīngjùyuàn", meaning: "中国国家京劇院", category: "#80" },
+      { id: 19, hanzi: "西游记·五行山", pinyin: "xīyóujì · wǔxíngshān", meaning: "西遊記・五行山", category: "#80" },
+      { id: 20, hanzi: "唱念做打", pinyin: "chàng niàn zuò dǎ", meaning: "歌う、セリフ、表情、身のこなし（京劇の基本技法）", category: "#80" },
+      { id: 21, hanzi: "台上一分钟，台下十年功", pinyin: "tái shàng yì fēnzhōng, tái xià shí nián gōng", meaning: "舞台の上の一分、舞台の下の十年（一瞬の演技に長年の修練）", category: "#80" },
+      { id: 22, hanzi: "后台", pinyin: "hòutái", meaning: "バックステージ（楽屋・舞台裏）", category: "#80" },
+      { id: 23, hanzi: "苍穹之昴", pinyin: "cāngqióng zhī mǎo", meaning: "蒼穹の昴", category: "#80" },
+
+      // #81
+      { id: 24, hanzi: "亲笔信", pinyin: "qīnbǐ xìn", meaning: "親書（直筆の手紙）", category: "#81" },
+      { id: 25, hanzi: "联合执政", pinyin: "liánhé zhízhèng", meaning: "連立政権を組む（連立政権）", category: "#81" },
+      { id: 26, hanzi: "火控雷达", pinyin: "huǒkòng léidá", meaning: "火器管制レーダー", category: "#81" },
+      { id: 27, hanzi: "亚太经合组织", pinyin: "yàtài jīnghé zǔzhī", meaning: "APEC（アジア太平洋経済協力）", category: "#81" },
+      { id: 28, hanzi: "甲级战犯", pinyin: "jiǎjí zhànfàn", meaning: "A級戦犯", category: "#81" },
+      { id: 29, hanzi: "模糊表述", pinyin: "móhu biǎoshù", meaning: "玉虫色（曖昧な表現）", category: "#81" }
+    ];
+
+    // バージョン管理による自動データ同期
+    const DATA_VERSION = "v4_fix_mohu_biaoshu";
+    let savedVersion = localStorage.getItem("chinese_vocab_version");
+    let words;
+    if (savedVersion !== DATA_VERSION) {
+      words = [...defaultWords];
+      localStorage.setItem("chinese_vocab_list", JSON.stringify(words));
+      localStorage.setItem("chinese_vocab_version", DATA_VERSION);
+    } else {
+      words = JSON.parse(localStorage.getItem('chinese_vocab_list')) || defaultWords;
+    }
+
+    let currentCategory = 'all';
+    let isPlayingQueue = false;
+    let stopRequested = false;
+    let availableZhVoices = [];
+    let availableJaVoices = [];
+
+    // 音声エンジンの初期化
+    function initVoices() {
+      if (!('speechSynthesis' in window)) {
+        alert("お使いのブラウザは音声合成に対応していません。ChromeまたはEdgeをご利用ください。");
+        return;
+      }
+
+      function updateVoiceList() {
+        const voices = window.speechSynthesis.getVoices();
+        
+        // 中国語音声 (zh)
+        availableZhVoices = voices.filter(v => v.lang.startsWith('zh') || v.name.includes('Chinese') || v.name.includes('Mandarin'));
+        
+        // 日本語音声 (ja)
+        availableJaVoices = voices.filter(v => v.lang.startsWith('ja') || v.name.includes('Japanese'));
+
+        const select = document.getElementById('voiceSelect');
+        select.innerHTML = '<option value="">標準 (中国語)</option>';
+        availableZhVoices.forEach((v) => {
+          const opt = document.createElement('option');
+          opt.value = v.voiceURI;
+          opt.textContent = `${v.name} (${v.lang})`;
+          select.appendChild(opt);
+        });
+      }
+
+      updateVoiceList();
+      if (window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = updateVoiceList;
+      }
+    }
+
+    // 単語カード描画
+    function renderCards() {
+      const container = document.getElementById('wordGrid');
+      container.innerHTML = '';
+
+      const filtered = words.filter(w => currentCategory === 'all' || w.category === currentCategory);
+
+      // カウント更新
+      document.getElementById('countAll').textContent = words.length;
+      document.getElementById('count78').textContent = words.filter(w => w.category === '#78').length;
+      document.getElementById('count79').textContent = words.filter(w => w.category === '#79').length;
+      document.getElementById('count80').textContent = words.filter(w => w.category === '#80').length;
+      document.getElementById('count81').textContent = words.filter(w => w.category === '#81').length;
+
+      const maskPinyin = document.getElementById('maskPinyin').checked;
+      const maskMeaning = document.getElementById('maskMeaning').checked;
+
+      filtered.forEach((w) => {
+        const card = document.createElement('div');
+        card.className = 'word-card';
+        card.id = `card-${w.id}`;
+        card.onclick = (e) => {
+          if (e.target.closest('.g-trans-link')) return;
+          playWordSingle(w);
+        };
+
+        const googleTranslateUrl = `https://translate.google.com/?sl=zh-CN&tl=ja&text=${encodeURIComponent(w.hanzi)}&op=translate`;
+
+        card.innerHTML = `
+          <div>
+            <div class="card-top">
+              <span class="card-badge">${w.category || '#単語'}</span>
+              <button class="play-btn" title="再生">🔊</button>
+            </div>
+            <div class="chinese">${w.hanzi}</div>
+            <div class="pinyin ${maskPinyin ? 'masked' : ''}">${w.pinyin}</div>
+            <div class="meaning ${maskMeaning ? 'masked' : ''}">${w.meaning}</div>
+          </div>
+          <div class="card-footer">
+            <a href="${googleTranslateUrl}" target="_blank" class="g-trans-link" title="Google翻訳で開く">Google翻訳↗</a>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    // 中国語 発音 (Promise)
+    function speakChinese(text, rate = 1.0) {
+      return new Promise((resolve) => {
+        window.speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'zh-CN';
+        utterance.rate = rate;
+
+        const selectedUri = document.getElementById('voiceSelect').value;
+        if (selectedUri) {
+          const selectedVoice = availableZhVoices.find(v => v.voiceURI === selectedUri);
+          if (selectedVoice) utterance.voice = selectedVoice;
+        }
+
+        utterance.onend = () => resolve();
+        utterance.onerror = (e) => {
+          console.warn("ZH TTS Error/Cancel:", e);
+          resolve();
+        };
+
+        window.speechSynthesis.speak(utterance);
+      });
+    }
+
+    // 日本語 発音 (Promise)
+    function speakJapanese(text, rate = 1.0) {
+      return new Promise((resolve) => {
+        const cleanText = text.replace(/[\/／]/g, '、');
+
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.lang = 'ja-JP';
+        utterance.rate = Math.min(Math.max(rate, 0.95), 1.25);
+
+        if (availableJaVoices.length > 0) {
+          utterance.voice = availableJaVoices[0];
+        }
+
+        utterance.onend = () => resolve();
+        utterance.onerror = (e) => {
+          console.warn("JA TTS Error/Cancel:", e);
+          resolve();
+        };
+
+        window.speechSynthesis.speak(utterance);
+      });
+    }
+
+    // 単語1つを再生（中国語リピート ➔ 日本語）
+    async function playWord(wordObj, repeatTimes = 1, rate = 1.0, interval = 1200) {
+      const shouldPlayJa = document.getElementById('playJapanese').checked;
+
+      // 1. 中国語の読み上げ
+      highlightCard(wordObj.id, 'playing-zh');
+      updateStatus(`🇨🇳 中国語: ${wordObj.hanzi} (${wordObj.pinyin})`, true, '#2563eb');
+
+      for (let i = 0; i < repeatTimes; i++) {
+        if (stopRequested) break;
+        await speakChinese(wordObj.hanzi, rate);
+        if (i < repeatTimes - 1) {
+          await sleep(500);
+        }
+      }
+
+      // 2. 日本語訳の読み上げ
+      if (!stopRequested && shouldPlayJa && wordObj.meaning) {
+        await sleep(350);
+        highlightCard(wordObj.id, 'playing-ja');
+        updateStatus(`🇯🇵 日本語: ${wordObj.meaning}`, true, '#10b981');
+        await speakJapanese(wordObj.meaning, rate);
+      }
+
+      highlightCard(wordObj.id, false);
+
+      // 3. 次の単語までの待機時間
+      if (!stopRequested && interval > 0) {
+        await sleep(interval);
+      }
+    }
+
+    // 単発クリック再生
+    async function playWordSingle(wordObj) {
+      if (isPlayingQueue) stopQueue();
+      stopRequested = false;
+      const rate = parseFloat(document.getElementById('speedRange').value);
+      const repeat = parseInt(document.getElementById('repeatCount').value);
+      await playWord(wordObj, repeat, rate, 0);
+      updateStatus(`待機中`, false);
+    }
+
+    // 連続再生キュー
+    async function startQueue() {
+      const filtered = words.filter(w => currentCategory === 'all' || w.category === currentCategory);
+      if (filtered.length === 0) return;
+
+      isPlayingQueue = true;
+      stopRequested = false;
+      document.getElementById('btnPlayAll').style.display = 'none';
+      document.getElementById('btnPause').style.display = 'inline-flex';
+
+      const rate = parseFloat(document.getElementById('speedRange').value);
+      const interval = parseInt(document.getElementById('intervalSelect').value);
+      const repeat = parseInt(document.getElementById('repeatCount').value);
+
+      for (let i = 0; i < filtered.length; i++) {
+        if (stopRequested) break;
+        const currentWord = filtered[i];
+        
+        const cardElem = document.getElementById(`card-${currentWord.id}`);
+        if (cardElem) {
+          cardElem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        await playWord(currentWord, repeat, rate, interval);
+      }
+
+      stopQueue();
+    }
+
+    function stopQueue() {
+      stopRequested = true;
+      isPlayingQueue = false;
+      window.speechSynthesis.cancel();
+      document.querySelectorAll('.word-card').forEach(c => {
+        c.classList.remove('playing-zh', 'playing-ja');
+      });
+      document.getElementById('btnPlayAll').style.display = 'inline-flex';
+      document.getElementById('btnPause').style.display = 'none';
+      updateStatus(`停止しました`, false);
+    }
+
+    function highlightCard(id, stateClass) {
+      const card = document.getElementById(`card-${id}`);
+      if (!card) return;
+      card.classList.remove('playing-zh', 'playing-ja');
+      if (stateClass) card.classList.add(stateClass);
+    }
+
+    function updateStatus(text, isPlaying, badgeColor = '#64748b') {
+      document.getElementById('statusText').textContent = text;
+      const badge = document.getElementById('statusBadge');
+      if (isPlaying) {
+        badge.textContent = "再生中";
+        badge.style.background = badgeColor;
+      } else {
+        badge.textContent = "待機中";
+        badge.style.background = "#64748b";
+      }
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // イベント設定
+    document.addEventListener('DOMContentLoaded', () => {
+      initVoices();
+      renderCards();
+
+      // 再生ボタン
+      document.getElementById('btnPlayAll').onclick = startQueue;
+      document.getElementById('btnPause').onclick = stopQueue;
+      document.getElementById('btnStop').onclick = stopQueue;
+
+      // 速度スライダー
+      const speedRange = document.getElementById('speedRange');
+      const speedVal = document.getElementById('speedValue');
+      speedRange.oninput = () => {
+        speedVal.textContent = speedRange.value;
+      };
+
+      // カテゴリタグ
+      document.querySelectorAll('.filter-tag').forEach(tag => {
+        tag.onclick = () => {
+          document.querySelectorAll('.filter-tag').forEach(t => t.classList.remove('active'));
+          tag.classList.add('active');
+          currentCategory = tag.getAttribute('data-category');
+          if (isPlayingQueue) stopQueue();
+          renderCards();
+        };
+      });
+
+      // マスクトグル
+      document.getElementById('maskPinyin').onchange = () => {
+        const masked = document.getElementById('maskPinyin').checked;
+        document.querySelectorAll('.pinyin').forEach(el => el.classList.toggle('masked', masked));
+      };
+      document.getElementById('maskMeaning').onchange = () => {
+        const masked = document.getElementById('maskMeaning').checked;
+        document.querySelectorAll('.meaning').forEach(el => el.classList.toggle('masked', masked));
+      };
+
+      // 単語インポート
+      document.getElementById('btnImport').onclick = () => {
+        const text = document.getElementById('importInput').value.trim();
+        if (!text) return;
+
+        const lines = text.split('\n');
+        let newCount = 0;
+
+        lines.forEach(line => {
+          line = line.trim();
+          if (!line) return;
+
+          let hanzi = "", pinyin = "", meaning = "", category = "#追加";
+
+          const match1 = line.match(/^([^\s（(]+)[（(]([^）)]+)[）)]\s*[:：]\s*(.+)$/);
+          if (match1) {
+            hanzi = match1[1].trim();
+            pinyin = match1[2].trim();
+            meaning = match1[3].trim();
+          } else {
+            const parts = line.split(/[\t\s]+/);
+            if (parts.length >= 3) {
+              hanzi = parts[0];
+              pinyin = parts[1];
+              meaning = parts.slice(2).join(' ');
+              if (parts[parts.length - 1].startsWith('#')) {
+                category = parts[parts.length - 1];
+                meaning = parts.slice(2, parts.length - 1).join(' ');
+              }
+            } else if (parts.length === 2) {
+              hanzi = parts[0];
+              meaning = parts[1];
+            } else {
+              hanzi = parts[0];
+            }
+          }
+
+          if (hanzi) {
+            words.push({
+              id: Date.now() + Math.random(),
+              hanzi,
+              pinyin,
+              meaning,
+              category
+            });
+            newCount++;
+          }
+        });
+
+        localStorage.setItem('chinese_vocab_list', JSON.stringify(words));
+        document.getElementById('importInput').value = '';
+        renderCards();
+        alert(`${newCount} 件の単語を追加しました！`);
+      };
+
+      // リセット
+      document.getElementById('btnResetData').onclick = () => {
+        if (confirm("単語リストを初期データ（#78〜#81）に戻しますか？")) {
+          words = [...defaultWords];
+          localStorage.setItem('chinese_vocab_list', JSON.stringify(words));
+          localStorage.setItem('chinese_vocab_version', DATA_VERSION);
+          renderCards();
+        }
+      };
+    });
+  </script>
+</body>
+</html>
