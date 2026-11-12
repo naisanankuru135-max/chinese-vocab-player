@@ -278,8 +278,8 @@
       background: none;
       border: none;
       color: #94a3b8;
-      font-size: 1rem;
-      padding: 4px 6px;
+      font-size: 1.1rem;
+      padding: 2px 6px;
       border-radius: 4px;
       line-height: 1;
     }
@@ -310,21 +310,22 @@
     }
 
     .chinese {
-      font-size: 1.45rem;
+      font-size: 1.35rem;
       font-weight: 700;
       color: #0f172a;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.03em;
       margin-bottom: 4px;
-      line-height: 1.35;
+      line-height: 1.4;
     }
 
     .pinyin {
       font-size: 0.95rem;
       font-weight: 600;
       color: var(--pinyin-color);
-      letter-spacing: 0.03em;
+      letter-spacing: 0.02em;
       margin-bottom: 8px;
       min-height: 1.4em;
+      line-height: 1.35;
       transition: filter 0.2s;
     }
 
@@ -338,6 +339,7 @@
       color: #334155;
       border-top: 1px dashed var(--border);
       padding-top: 8px;
+      line-height: 1.4;
       transition: filter 0.2s;
     }
 
@@ -534,8 +536,11 @@
         例: <code>你好 nǐhǎo こんにちは #日常会話</code>
       </p>
       <textarea id="importInput" class="import-textarea" placeholder="你好 nǐhǎo こんにちは #日常会話&#10;谢谢 xièxie ありがとう #日常会話&#10;再见 zàijiàn さようなら"></textarea>
-      <div style="display: flex; gap: 8px; justify-content: space-between; align-items: center;">
-        <button id="btnClearAll" style="color: #ef4444; border-color: #fca5a5;">単語を全消去</button>
+      <div style="display: flex; gap: 8px; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+        <div style="display: flex; gap: 8px;">
+          <button id="btnClearAll" style="color: #ef4444; border-color: #fca5a5;">単語を全消去</button>
+          <button id="btnResetDefault" style="color: #64748b;">初期データに戻す</button>
+        </div>
         <button id="btnImport" class="btn-primary">追加する</button>
       </div>
     </div>
@@ -553,11 +558,26 @@
   </div>
 
   <script>
-    // 初期単語データ（空に設定）
-    const defaultWords = [];
+    // 初期単語データ (#82, #83)
+    const defaultWords = [
+      // #82
+      { id: 1, hanzi: "中国节很好玩。", pinyin: "Zhōngguó Jié hěn hǎowán.", meaning: "チャイナフェスティバル（中国節）はとても楽しい。", category: "#82" },
+      { id: 2, hanzi: "世界人形机器人运动会上，机器人会跑步。", pinyin: "Shìjiè Rénxíng Jīqìrén Yùndònghuì shàng, jīqìrén huì pǎobù.", meaning: "世界人型ロボット大会で、ロボットは走ることができる。", category: "#82" },
+      { id: 3, hanzi: "宇树科技做机器人。", pinyin: "Yǔshù Kējì zuò jīqìrén.", meaning: "Unitree（宇樹科技）はロボットを作っている。", category: "#82" },
+      { id: 4, hanzi: "我喜欢吃麻辣烫。", pinyin: "Wǒ xǐhuan chī málàtàng.", meaning: "私はマーラータンを食べるのが好きです。", category: "#82" },
+      { id: 5, hanzi: "香香是一只熊猫。", pinyin: "Xiāngxiāng shì yì zhī xióngmāo.", meaning: "シャンシャン（香香）はパンダです。", category: "#82" },
 
-    // バージョン管理による自動データ同期（空データへリセット）
-    const DATA_VERSION = "v5_empty_init";
+      // #83
+      { id: 6, hanzi: "APEC领导人会议很重要。", pinyin: "APEC lǐngdǎorén huìyì hěn zhòngyào.", meaning: "APEC首脳会議はとても重要です。", category: "#83" },
+      { id: 7, hanzi: "广东省深圳是一个大城市。", pinyin: "Guǎngdōng Shěng Shēnzhèn shì yí ge dà chéngshì.", meaning: "広東省の深圳は大都市です。", category: "#83" },
+      { id: 8, hanzi: "部长级会议今天开始。", pinyin: "Bùzhǎngjí huìyì jīntiān kāishǐ.", meaning: "閣僚級会議は今日始まります。", category: "#83" },
+      { id: 9, hanzi: "西雅图在美国。", pinyin: "Xīyǎtú zài Měiguó.", meaning: "シアトルはアメリカにあります。", category: "#83" },
+      { id: 10, hanzi: "很多国家一起多边磋商。", pinyin: "Hěn duō guójiā yìqǐ duōbiān cuōshāng.", meaning: "多くの国が一緒に多国間協議を行います。", category: "#83" },
+      { id: 11, hanzi: "两国举行双边会谈。", pinyin: "Liǎng guó jǔxíng shuāngbiān huìtán.", meaning: "両国は二国間会談を行います。", category: "#83" }
+    ];
+
+    // バージョン管理による自動データ同期
+    const DATA_VERSION = "v6_add_82_83";
     let savedVersion = localStorage.getItem("chinese_vocab_version");
     let words;
     if (savedVersion !== DATA_VERSION) {
@@ -947,6 +967,17 @@
       document.getElementById('btnClearAll').onclick = () => {
         if (confirm("登録されているすべての単語を消去しますか？")) {
           words = [];
+          localStorage.setItem('chinese_vocab_list', JSON.stringify(words));
+          localStorage.setItem('chinese_vocab_version', DATA_VERSION);
+          if (isPlayingQueue) stopQueue();
+          renderCards();
+        }
+      };
+
+      // 初期データに戻す
+      document.getElementById('btnResetDefault').onclick = () => {
+        if (confirm("単語リストを初期データ（#82, #83）に戻しますか？")) {
+          words = [...defaultWords];
           localStorage.setItem('chinese_vocab_list', JSON.stringify(words));
           localStorage.setItem('chinese_vocab_version', DATA_VERSION);
           if (isPlayingQueue) stopQueue();
