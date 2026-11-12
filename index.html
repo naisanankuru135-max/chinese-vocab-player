@@ -310,22 +310,21 @@
     }
 
     .chinese {
-      font-size: 1.35rem;
+      font-size: 1.45rem;
       font-weight: 700;
       color: #0f172a;
-      letter-spacing: 0.03em;
+      letter-spacing: 0.04em;
       margin-bottom: 4px;
-      line-height: 1.4;
+      line-height: 1.35;
     }
 
     .pinyin {
       font-size: 0.95rem;
       font-weight: 600;
       color: var(--pinyin-color);
-      letter-spacing: 0.02em;
+      letter-spacing: 0.03em;
       margin-bottom: 8px;
       min-height: 1.4em;
-      line-height: 1.35;
       transition: filter 0.2s;
     }
 
@@ -537,7 +536,10 @@
       </p>
       <textarea id="importInput" class="import-textarea" placeholder="你好 nǐhǎo こんにちは #日常会話&#10;谢谢 xièxie ありがとう #日常会話&#10;再见 zàijiàn さようなら"></textarea>
       <div style="display: flex; gap: 8px; justify-content: space-between; align-items: center; flex-wrap: wrap;">
-        <button id="btnClearAll" style="color: #ef4444; border-color: #fca5a5;">単語を全消去</button>
+        <div style="display: flex; gap: 8px;">
+          <button id="btnClearAll" style="color: #ef4444; border-color: #fca5a5;">単語を全消去</button>
+          <button id="btnResetDefault" style="color: #64748b;">初期データに戻す</button>
+        </div>
         <button id="btnImport" class="btn-primary">追加する</button>
       </div>
     </div>
@@ -555,11 +557,27 @@
   </div>
 
   <script>
-    // 初期単語データ（空に設定）
-    const defaultWords = [];
+    // 初期単語データ (#82, #83)
+    const defaultWords = [
+      // #82
+      { id: 1, hanzi: "中国节", pinyin: "Zhōngguó Jié", meaning: "チャイナフェス", category: "#82" },
+      { id: 2, hanzi: "世界人形机器人运动会", pinyin: "Shìjiè Rénxíng Jīqìrén Yùndònghuì", meaning: "世界人型ロボット運動会", category: "#82" },
+      { id: 3, hanzi: "宇树科技", pinyin: "Yǔshù Kējì", meaning: "ユニツリー（会社名）", category: "#82" },
+      { id: 4, hanzi: "麻辣烫", pinyin: "málàtàng", meaning: "麻辣湯、マーラータン", category: "#82" },
+      { id: 5, hanzi: "香香", pinyin: "Xiāngxiāng", meaning: "シャンシャン（パンダの名前）", category: "#82" },
 
-    // バージョン管理による自動データ同期（空データへリセット）
-    const DATA_VERSION = "v7_empty_again";
+      // #83
+      { id: 6, hanzi: "APEC领导人会议", pinyin: "APEC lǐngdǎorén huìyì", meaning: "APEC首脳会議", category: "#83" },
+      { id: 7, hanzi: "APEC首脑会议", pinyin: "APEC shǒunǎo huìyì", meaning: "APEC首脳会議", category: "#83" },
+      { id: 8, hanzi: "广东省深圳", pinyin: "Guǎngdōng Shěng Shēnzhèn", meaning: "広東省深圳", category: "#83" },
+      { id: 9, hanzi: "部长级会议", pinyin: "bùzhǎngjí huìyì", meaning: "閣僚会議", category: "#83" },
+      { id: 10, hanzi: "西雅图", pinyin: "Xīyǎtú", meaning: "シアトル（地名）", category: "#83" },
+      { id: 11, hanzi: "多边磋商", pinyin: "duōbiān cuōshāng", meaning: "多国間協議、マルチ協議", category: "#83" },
+      { id: 12, hanzi: "双边会谈", pinyin: "shuāngbiān huìtán", meaning: "バイ会談", category: "#83" }
+    ];
+
+    // バージョン管理による自動データ同期
+    const DATA_VERSION = "v8_vocab_82_83";
     let savedVersion = localStorage.getItem("chinese_vocab_version");
     let words;
     if (savedVersion !== DATA_VERSION) {
@@ -847,10 +865,10 @@
       if (stateClass) card.classList.add(stateClass);
     }
 
-    function updateStatus(text, isisPlaying, badgeColor = '#64748b') {
+    function updateStatus(text, isPlaying, badgeColor = '#64748b') {
       document.getElementById('statusText').textContent = text;
       const badge = document.getElementById('statusBadge');
-      if (isisPlaying) {
+      if (isPlaying) {
         badge.textContent = "再生中";
         badge.style.background = badgeColor;
       } else {
@@ -949,6 +967,17 @@
       document.getElementById('btnClearAll').onclick = () => {
         if (confirm("登録されているすべての単語を消去しますか？")) {
           words = [];
+          localStorage.setItem('chinese_vocab_list', JSON.stringify(words));
+          localStorage.setItem('chinese_vocab_version', DATA_VERSION);
+          if (isPlayingQueue) stopQueue();
+          renderCards();
+        }
+      };
+
+      // 初期データに戻す
+      document.getElementById('btnResetDefault').onclick = () => {
+        if (confirm("単語リストを初期データ（#82, #83の単語）に戻しますか？")) {
+          words = [...defaultWords];
           localStorage.setItem('chinese_vocab_list', JSON.stringify(words));
           localStorage.setItem('chinese_vocab_version', DATA_VERSION);
           if (isPlayingQueue) stopQueue();
