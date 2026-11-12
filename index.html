@@ -268,6 +268,27 @@
       font-weight: bold;
     }
 
+    .card-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-delete-card {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 1rem;
+      padding: 4px 6px;
+      border-radius: 4px;
+      line-height: 1;
+    }
+
+    .btn-delete-card:hover {
+      color: #ef4444;
+      background: #fee2e2;
+    }
+
     .play-btn {
       width: 34px;
       height: 34px;
@@ -340,6 +361,27 @@
       text-decoration: underline;
     }
 
+    /* 空状態メッセージ */
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 48px 20px;
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      border: 2px dashed var(--border);
+      color: var(--text-muted);
+    }
+
+    .empty-state h3 {
+      font-size: 1.2rem;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .empty-state p {
+      font-size: 0.9rem;
+    }
+
     /* 単語追加フォーム */
     .import-section {
       margin-top: 30px;
@@ -356,7 +398,7 @@
 
     .import-textarea {
       width: 100%;
-      height: 100px;
+      height: 110px;
       padding: 10px;
       border-radius: 8px;
       border: 1px solid var(--border);
@@ -455,12 +497,8 @@
 
       <!-- 詳細設定とトグル -->
       <div class="filter-bar">
-        <div class="filter-tags">
+        <div class="filter-tags" id="filterTagsContainer">
           <button class="filter-tag active" data-category="all">すべて (<span id="countAll">0</span>)</button>
-          <button class="filter-tag" data-category="#78">#78 (<span id="count78">0</span>)</button>
-          <button class="filter-tag" data-category="#79">#79 (<span id="count79">0</span>)</button>
-          <button class="filter-tag" data-category="#80">#80 (<span id="count80">0</span>)</button>
-          <button class="filter-tag" data-category="#81">#81 (<span id="count81">0</span>)</button>
         </div>
 
         <div class="toggles">
@@ -492,11 +530,12 @@
     <div class="import-section">
       <h3>➕ 新しい単語を追加・一括登録</h3>
       <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">
-        書式例: <code>中国語 ピンイン 日本語訳 タグ</code>（タブ区切りやコロン区切りでも自動解析します）
+        書式例: <code>中国語 ピンイン 日本語訳 #タグ</code>（スペース区切り・タブ区切りに対応。ピンインやタグは省略可能）<br>
+        例: <code>你好 nǐhǎo こんにちは #日常会話</code>
       </p>
-      <textarea id="importInput" class="import-textarea" placeholder="你好 nǐhǎo こんにちは #82&#10;谢谢 xièxie ありがとう #82"></textarea>
-      <div style="display: flex; gap: 8px; justify-content: flex-end;">
-        <button id="btnResetData" style="color: #ef4444;">初期データに戻す</button>
+      <textarea id="importInput" class="import-textarea" placeholder="你好 nǐhǎo こんにちは #日常会話&#10;谢谢 xièxie ありがとう #日常会話&#10;再见 zàijiàn さようなら"></textarea>
+      <div style="display: flex; gap: 8px; justify-content: space-between; align-items: center;">
+        <button id="btnClearAll" style="color: #ef4444; border-color: #fca5a5;">単語を全消去</button>
         <button id="btnImport" class="btn-primary">追加する</button>
       </div>
     </div>
@@ -514,48 +553,11 @@
   </div>
 
   <script>
-    // 初期単語データ (#78, #79, #80, #81)
-    const defaultWords = [
-      // #78
-      { id: 1, hanzi: "布袋戏", pinyin: "bùdàixì", meaning: "ポテヒ（布袋劇）", category: "#78" },
-      { id: 2, hanzi: "木偶剧", pinyin: "mù'ǒujù", meaning: "人形劇", category: "#78" },
-      { id: 3, hanzi: "圣石传说", pinyin: "shèngshí chuánshuō", meaning: "聖石伝説", category: "#78" },
-      { id: 4, hanzi: "东离剑游纪", pinyin: "dōnglí jiànyóujì", meaning: "Thunderbolt Fantasy 東離劍遊紀", category: "#78" },
-      { id: 5, hanzi: "文戏", pinyin: "wénxì", meaning: "文劇（会話や演技中心の場面）", category: "#78" },
-      { id: 6, hanzi: "武戏", pinyin: "wǔxì", meaning: "武劇（立ち回りやアクション場面）", category: "#78" },
-      { id: 7, hanzi: "玄幻武侠木偶剧", pinyin: "xuánhuàn wǔxiá mù'ǒujù", meaning: "武侠ファンタジー人形劇", category: "#78" },
-      { id: 8, hanzi: "亦宛然掌中剧团", pinyin: "yìwǎnrán zhǎngzhōng jùtuán", meaning: "亦宛然掌中劇団", category: "#78" },
+    // 初期単語データ（空に設定）
+    const defaultWords = [];
 
-      // #79
-      { id: 9, hanzi: "政权更替", pinyin: "zhèngquán gēngtì", meaning: "政権交代", category: "#79" },
-      { id: 10, hanzi: "钓鱼岛", pinyin: "diàoyúdǎo", meaning: "釣魚島（尖閣諸島）", category: "#79" },
-      { id: 11, hanzi: "尖阁国有化", pinyin: "jiāngé guóyǒuhuà", meaning: "尖閣国有化", category: "#79" },
-      { id: 12, hanzi: "上海世博会", pinyin: "shànghǎi shìbóhuì", meaning: "上海万博", category: "#79" },
-      { id: 13, hanzi: "九一八事变", pinyin: "jiǔyībā shìbiàn", meaning: "満州事変", category: "#79" },
-      { id: 14, hanzi: "玻璃器皿", pinyin: "bōli qìmǐn", meaning: "ガラス器／ガラス細工", category: "#79" },
-      { id: 15, hanzi: "中日联合声明", pinyin: "zhōngrì liánhé shēngmíng", meaning: "日中共同声明", category: "#79" },
-      { id: 16, hanzi: "睦邻友好关系", pinyin: "mùlín yǒuhǎo guānxì", meaning: "善隣友好関係", category: "#79" },
-
-      // #80
-      { id: 17, hanzi: "中国戏曲学院", pinyin: "zhōngguó xìqǔ xuéyuàn", meaning: "中国戯曲学院", category: "#80" },
-      { id: 18, hanzi: "中国国家京剧院", pinyin: "zhōngguó guójiā jīngjùyuàn", meaning: "中国国家京劇院", category: "#80" },
-      { id: 19, hanzi: "西游记·五行山", pinyin: "xīyóujì · wǔxíngshān", meaning: "西遊記・五行山", category: "#80" },
-      { id: 20, hanzi: "唱念做打", pinyin: "chàng niàn zuò dǎ", meaning: "歌う、セリフ、表情、身のこなし（京劇の基本技法）", category: "#80" },
-      { id: 21, hanzi: "台上一分钟，台下十年功", pinyin: "tái shàng yì fēnzhōng, tái xià shí nián gōng", meaning: "舞台の上の一分、舞台の下の十年（一瞬の演技に長年の修練）", category: "#80" },
-      { id: 22, hanzi: "后台", pinyin: "hòutái", meaning: "バックステージ（楽屋・舞台裏）", category: "#80" },
-      { id: 23, hanzi: "苍穹之昴", pinyin: "cāngqióng zhī mǎo", meaning: "蒼穹の昴", category: "#80" },
-
-      // #81
-      { id: 24, hanzi: "亲笔信", pinyin: "qīnbǐ xìn", meaning: "親書（直筆の手紙）", category: "#81" },
-      { id: 25, hanzi: "联合执政", pinyin: "liánhé zhízhèng", meaning: "連立政権を組む（連立政権）", category: "#81" },
-      { id: 26, hanzi: "火控雷达", pinyin: "huǒkòng léidá", meaning: "火器管制レーダー", category: "#81" },
-      { id: 27, hanzi: "亚太经合组织", pinyin: "yàtài jīnghé zǔzhī", meaning: "APEC（アジア太平洋経済協力）", category: "#81" },
-      { id: 28, hanzi: "甲级战犯", pinyin: "jiǎjí zhànfàn", meaning: "A級戦犯", category: "#81" },
-      { id: 29, hanzi: "模糊表述", pinyin: "móhu biǎoshù", meaning: "玉虫色（曖昧な表現）", category: "#81" }
-    ];
-
-    // バージョン管理による自動データ同期
-    const DATA_VERSION = "v4_fix_mohu_biaoshu";
+    // バージョン管理による自動データ同期（空データへリセット）
+    const DATA_VERSION = "v5_empty_init";
     let savedVersion = localStorage.getItem("chinese_vocab_version");
     let words;
     if (savedVersion !== DATA_VERSION) {
@@ -604,19 +606,58 @@
       }
     }
 
+    // カテゴリフィルタータグの動的描画
+    function updateCategoryFilters() {
+      const container = document.getElementById('filterTagsContainer');
+      const categories = Array.from(new Set(words.map(w => w.category).filter(Boolean)));
+
+      // 存在しないカテゴリが選択されていたら 'all' に戻す
+      if (currentCategory !== 'all' && !categories.includes(currentCategory)) {
+        currentCategory = 'all';
+      }
+
+      let html = `<button class="filter-tag ${currentCategory === 'all' ? 'active' : ''}" data-category="all">すべて (<span id="countAll">${words.length}</span>)</button>`;
+
+      categories.forEach(cat => {
+        const count = words.filter(w => w.category === cat).length;
+        const active = currentCategory === cat ? 'active' : '';
+        html += `<button class="filter-tag ${active}" data-category="${cat}">${cat} (${count})</button>`;
+      });
+
+      container.innerHTML = html;
+
+      // クリックイベント再登録
+      container.querySelectorAll('.filter-tag').forEach(tag => {
+        tag.onclick = () => {
+          container.querySelectorAll('.filter-tag').forEach(t => t.classList.remove('active'));
+          tag.classList.add('active');
+          currentCategory = tag.getAttribute('data-category');
+          if (isPlayingQueue) stopQueue();
+          renderCards();
+        };
+      });
+    }
+
     // 単語カード描画
     function renderCards() {
       const container = document.getElementById('wordGrid');
       container.innerHTML = '';
 
+      updateCategoryFilters();
+
       const filtered = words.filter(w => currentCategory === 'all' || w.category === currentCategory);
 
-      // カウント更新
-      document.getElementById('countAll').textContent = words.length;
-      document.getElementById('count78').textContent = words.filter(w => w.category === '#78').length;
-      document.getElementById('count79').textContent = words.filter(w => w.category === '#79').length;
-      document.getElementById('count80').textContent = words.filter(w => w.category === '#80').length;
-      document.getElementById('count81').textContent = words.filter(w => w.category === '#81').length;
+      // 単語が0件のときの表示
+      if (filtered.length === 0) {
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'empty-state';
+        emptyDiv.innerHTML = `
+          <h3>📭 登録されている単語がありません</h3>
+          <p>下の「新しい単語を追加・一括登録」から中国語・ピンイン・日本語訳を入力して追加してください。</p>
+        `;
+        container.appendChild(emptyDiv);
+        return;
+      }
 
       const maskPinyin = document.getElementById('maskPinyin').checked;
       const maskMeaning = document.getElementById('maskMeaning').checked;
@@ -626,7 +667,7 @@
         card.className = 'word-card';
         card.id = `card-${w.id}`;
         card.onclick = (e) => {
-          if (e.target.closest('.g-trans-link')) return;
+          if (e.target.closest('.g-trans-link') || e.target.closest('.btn-delete-card')) return;
           playWordSingle(w);
         };
 
@@ -636,11 +677,14 @@
           <div>
             <div class="card-top">
               <span class="card-badge">${w.category || '#単語'}</span>
-              <button class="play-btn" title="再生">🔊</button>
+              <div class="card-actions">
+                <button class="btn-delete-card" title="この単語を削除" onclick="deleteWord(${w.id}, event)">×</button>
+                <button class="play-btn" title="再生">🔊</button>
+              </div>
             </div>
             <div class="chinese">${w.hanzi}</div>
-            <div class="pinyin ${maskPinyin ? 'masked' : ''}">${w.pinyin}</div>
-            <div class="meaning ${maskMeaning ? 'masked' : ''}">${w.meaning}</div>
+            <div class="pinyin ${maskPinyin ? 'masked' : ''}">${w.pinyin || ''}</div>
+            <div class="meaning ${maskMeaning ? 'masked' : ''}">${w.meaning || ''}</div>
           </div>
           <div class="card-footer">
             <a href="${googleTranslateUrl}" target="_blank" class="g-trans-link" title="Google翻訳で開く">Google翻訳↗</a>
@@ -649,6 +693,14 @@
 
         container.appendChild(card);
       });
+    }
+
+    // 単語個別削除
+    function deleteWord(id, event) {
+      if (event) event.stopPropagation();
+      words = words.filter(w => w.id !== id);
+      localStorage.setItem('chinese_vocab_list', JSON.stringify(words));
+      renderCards();
     }
 
     // 中国語 発音 (Promise)
@@ -705,7 +757,7 @@
 
       // 1. 中国語の読み上げ
       highlightCard(wordObj.id, 'playing-zh');
-      updateStatus(`🇨🇳 中国語: ${wordObj.hanzi} (${wordObj.pinyin})`, true, '#2563eb');
+      updateStatus(`🇨🇳 中国語: ${wordObj.hanzi} ${wordObj.pinyin ? '(' + wordObj.pinyin + ')' : ''}`, true, '#2563eb');
 
       for (let i = 0; i < repeatTimes; i++) {
         if (stopRequested) break;
@@ -744,10 +796,14 @@
     // 連続再生キュー
     async function startQueue() {
       const filtered = words.filter(w => currentCategory === 'all' || w.category === currentCategory);
-      if (filtered.length === 0) return;
+      if (filtered.length === 0) {
+        alert("再生する単語がありません。下のフォームから単語を追加してください。");
+        return;
+      }
 
       isPlayingQueue = true;
       stopRequested = false;
+
       document.getElementById('btnPlayAll').style.display = 'none';
       document.getElementById('btnPause').style.display = 'inline-flex';
 
@@ -822,17 +878,6 @@
         speedVal.textContent = speedRange.value;
       };
 
-      // カテゴリタグ
-      document.querySelectorAll('.filter-tag').forEach(tag => {
-        tag.onclick = () => {
-          document.querySelectorAll('.filter-tag').forEach(t => t.classList.remove('active'));
-          tag.classList.add('active');
-          currentCategory = tag.getAttribute('data-category');
-          if (isPlayingQueue) stopQueue();
-          renderCards();
-        };
-      });
-
       // マスクトグル
       document.getElementById('maskPinyin').onchange = () => {
         const masked = document.getElementById('maskPinyin').checked;
@@ -855,7 +900,7 @@
           line = line.trim();
           if (!line) return;
 
-          let hanzi = "", pinyin = "", meaning = "", category = "#追加";
+          let hanzi = "", pinyin = "", meaning = "", category = "#単語";
 
           const match1 = line.match(/^([^\s（(]+)[（(]([^）)]+)[）)]\s*[:：]\s*(.+)$/);
           if (match1) {
@@ -898,12 +943,13 @@
         alert(`${newCount} 件の単語を追加しました！`);
       };
 
-      // リセット
-      document.getElementById('btnResetData').onclick = () => {
-        if (confirm("単語リストを初期データ（#78〜#81）に戻しますか？")) {
-          words = [...defaultWords];
+      // 全消去
+      document.getElementById('btnClearAll').onclick = () => {
+        if (confirm("登録されているすべての単語を消去しますか？")) {
+          words = [];
           localStorage.setItem('chinese_vocab_list', JSON.stringify(words));
           localStorage.setItem('chinese_vocab_version', DATA_VERSION);
+          if (isPlayingQueue) stopQueue();
           renderCards();
         }
       };
